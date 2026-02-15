@@ -2,7 +2,7 @@
 
 **SmartDrive AI** is a fully offline Android application built with **Kotlin** and **Modern Android Architecture (MVVM)** that monitors real-time driving behavior using on-device sensors.  
 
-The app collects accelerometer, gyroscope, and GPS data, detects risky driving events, computes a trip safety score, and optionally performs on-device AI-based risk classification using TensorFlow Lite — all without requiring any backend or internet connection.
+The app collects accelerometer, gyroscope, and GPS data, detects risky driving events, computes a trip safety score, and optionally performs on-device AI-based risk classification using TensorFlow Lite; all without requiring any backend or internet connection.
 
 ---
 
