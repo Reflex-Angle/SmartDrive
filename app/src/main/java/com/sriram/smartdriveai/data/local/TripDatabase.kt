@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [TripEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class TripDatabase : RoomDatabase() {
@@ -25,7 +25,9 @@ abstract class TripDatabase : RoomDatabase() {
                     context.applicationContext,
                     TripDatabase::class.java,
                     "trip_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

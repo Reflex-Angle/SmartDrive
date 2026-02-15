@@ -58,7 +58,8 @@ fun TripCard(trip: com.sriram.smartdriveai.data.local.TripEntity) {
     }
 
     val formattedDate = dateFormat.format(Date(trip.timestamp))
-    val durationSeconds = trip.durationMillis / 1000
+    val durationMinutes = trip.durationMillis / 60000f
+    val distanceKm = trip.distanceMeters / 1000f
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -75,10 +76,21 @@ fun TripCard(trip: com.sriram.smartdriveai.data.local.TripEntity) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Duration: $durationSeconds seconds")
+            Text("Duration: %.1f min".format(durationMinutes))
+            Text("Distance: %.2f km".format(distanceKm))
+            Text("Average Speed: %.1f km/h".format(trip.averageSpeedKmph))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text("Rapid Accelerations: ${trip.rapidAccelerations}")
             Text("Harsh Brakes: ${trip.harshBrakes}")
-            Text("Safety Score: ${trip.safetyScore}")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Safety Score: ${trip.safetyScore}",
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }

@@ -54,6 +54,15 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
     private val tripDao = TripDatabase.getDatabase(application).tripDao()
     private var tripStartTime: Long = 0L
 
+    private val _distanceMeters = MutableStateFlow(0f)
+    val distanceMeters: StateFlow<Float> = _distanceMeters
+
+    private var lastLocation: Location? = null
+
+    private var maxSpeedKmph = 0
+    private val speedSamples = mutableListOf<Int>()
+
+
     private var collecting = false
 
     fun simulateSpeed() {
@@ -68,13 +77,28 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
 
         locationJob = viewModelScope.launch {
             locationClient.getLocationUpdates().collect { location ->
+
                 val speedMps = location.speed
                 val speedKmph = (speedMps * 3.6).roundToInt()
                 _speed.value = speedKmph
+                if (speedKmph > maxSpeedKmph) {
+                    maxSpeedKmph = speedKmph
+                }
+
+                speedSamples.add(speedKmph)
+
                 _latitude.value = location.latitude
                 _longitude.value = location.longitude
+
+                lastLocation?.let { previous ->
+                    val distance = previous.distanceTo(location)
+                    _distanceMeters.value += distance
+                }
+
+                lastLocation = location
             }
         }
+
 
         sensorJob = viewModelScope.launch {
             sensorClient.getAccelerationUpdates().collect { values ->
@@ -111,10 +135,42 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
         val duration = tripEndTime - tripStartTime
 
         viewModelScope.launch {
+
+            val averageSpeed = if (_distanceMeters.value > 0) {
+                (_distanceMeters.value / 1000f) / (duration / 3600000f)
+            } else 0f
+
+            val avgSpeed = if (speedSamples.isNotEmpty())
+                speedSamples.average()
+            else 0.0
+
+            val speedVariance = if (speedSamples.isNotEmpty())
+                speedSamples.map { (it - avgSpeed) * (it - avgSpeed) }.average()
+            else 0.0
+
+            val distanceKm = _distanceMeters.value / 1000f
+            val durationMinutes = duration / 60000f
+
+            val rapidPerKm = if (distanceKm > 0)
+                _rapidAccelerations.value / distanceKm
+            else 0f
+
+            val brakesPerKm = if (distanceKm > 0)
+                _harshBrakes.value / distanceKm
+            else 0f
+
+            val eventsPerMinute = if (durationMinutes > 0)
+                (_rapidAccelerations.value + _harshBrakes.value) / durationMinutes
+            else 0f
+
+            //ML model inputs
+
             tripDao.insertTrip(
                 TripEntity(
                     timestamp = tripEndTime,
                     durationMillis = duration,
+                    distanceMeters = _distanceMeters.value,
+                    averageSpeedKmph = averageSpeed,
                     rapidAccelerations = _rapidAccelerations.value,
                     harshBrakes = _harshBrakes.value,
                     safetyScore = _safetyScore.value
@@ -137,6 +193,12 @@ class TripViewModel(application: Application) : AndroidViewModel(application) {
         _harshBrakes.value = 0
 
         _safetyScore.value = 100
+
+        _distanceMeters.value = 0f
+        lastLocation = null
+
+        maxSpeedKmph = 0
+        speedSamples.clear()
     }
 
     private fun updateSafetyScore() {

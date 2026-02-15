@@ -13,6 +13,10 @@ data class TripEntity(
 
     val durationMillis: Long,
 
+    val distanceMeters: Float,
+
+    val averageSpeedKmph: Float,
+
     val rapidAccelerations: Int,
 
     val harshBrakes: Int,
